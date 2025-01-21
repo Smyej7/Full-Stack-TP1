@@ -1,5 +1,6 @@
 package com.example.fullstacktp1.service;
 
+import com.example.fullstacktp1.dto.CategoryDTO;
 import com.example.fullstacktp1.model.Category;
 import com.example.fullstacktp1.repository.CategoryRepository;
 import org.springframework.data.domain.Page;
@@ -43,48 +44,63 @@ public class CategoryService {
 
     // Mise à jour d'une catégorie
     public Category updateCategory(Long id, Category updatedCategory) {
-        return categoryRepository.findById(id).map(category -> {
-            if (updatedCategory.getParent() != null && updatedCategory.getParent().getId().equals(id)) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        if (updatedCategory.getParent() != null) {
+            // Vérification : Empêcher l'ajout d'un parent avec un id inexistant
+            categoryRepository.findById(updatedCategory.getParent().getId())
+                    .orElseThrow(() -> new RuntimeException("Parent Category not found"));
+
+            // Vérification : Une catégorie ne peut pas être son propre parent
+            if (updatedCategory.getParent().getId().equals(id)) {
                 throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
             }
-            category.setName(updatedCategory.getName());
-            category.setParent(updatedCategory.getParent());
-            return categoryRepository.save(category);
-        }).orElseThrow(() -> new RuntimeException("Category not found"));
+
+            // Vérification : Empêcher une boucle hiérarchique
+            Long parentId = updatedCategory.getParent().getId();
+            if (isCircularReference(id, parentId)) {
+                throw new IllegalArgumentException("Une catégorie ne peut pas créer une boucle hiérarchique avec ses parents.");
+            }
+        }
+
+        category.setName(updatedCategory.getName());
+        category.setParent(updatedCategory.getParent());
+        return categoryRepository.save(category);
     }
+
+    private boolean isCircularReference(Long categoryId, Long parentId) {
+        Category parentCategory = categoryRepository.findById(parentId)
+                .orElse(null);
+        while (parentCategory != null) {
+            if (parentCategory.getId().equals(categoryId)) {
+                return true;
+            }
+            parentCategory = parentCategory.getParent();
+        }
+        return false;
+    }
+
 
     // Suppression d'une catégorie
     public void deleteCategory(Long id) {
         categoryRepository.deleteById(id);
     }
 
-    // Recherche avec filtres
-    public List<Category> searchCategories(Boolean isRoot, String afterDate, String beforeDate) {
-        List<Category> categories = categoryRepository.findAll();
-        return categories.stream()
-                .filter(category -> isRoot == null || (isRoot && category.getParent() == null) || (!isRoot && category.getParent() != null))
-                .filter(category -> {
-                    if (afterDate != null) {
-                        Date after = Date.valueOf(afterDate);
-                        return category.getCreationDate().after(after);
-                    }
-                    return true;
-                })
-                .filter(category -> {
-                    if (beforeDate != null) {
-                        Date before = Date.valueOf(beforeDate);
-                        return category.getCreationDate().before(before);
-                    }
-                    return true;
-                })
-                .collect(Collectors.toList());
-    }
-
     public boolean categoryExists(Long id) {
         return categoryRepository.existsById(id);
     }
 
-    public Page<Category> getCategoriesWithPagination(Pageable pageable) {
-        return categoryRepository.findAll(pageable);
+    public Page<CategoryDTO> getSortedCategories(String sortBy, String direction, int page, int size) {
+        Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return categoryRepository.findAll(pageable).map(category -> new CategoryDTO(
+                category.getId(),
+                category.getName(),
+                category.getCreationDate(),
+                category.getParent() == null,
+                category.getChildren()
+        ));
     }
 }

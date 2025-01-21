@@ -1,5 +1,6 @@
 package com.example.fullstacktp1.controller;
 
+import com.example.fullstacktp1.dto.CategoryDTO;
 import com.example.fullstacktp1.model.Category;
 import com.example.fullstacktp1.service.CategoryService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -29,13 +31,23 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.createCategory(category));
     }
 
-    // Lecture de toutes les catégories avec pagination et tri
+    // Lecture de toutes les catégories avec pagination
     @GetMapping
     public ResponseEntity<List<Category>> getAllCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy) {
         return ResponseEntity.ok(categoryService.getAllCategories(page, size, sortBy));
+    }
+
+    @GetMapping("/sort")
+    public ResponseEntity<Page<CategoryDTO>> getSortedCategories(
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<CategoryDTO> categories = categoryService.getSortedCategories(sortBy, direction, page, size);
+        return ResponseEntity.ok(categories);
     }
 
     // Lecture d'une catégorie par ID
@@ -48,12 +60,8 @@ public class CategoryController {
 
     // Mise à jour d'une catégorie
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
-        try {
-            return ResponseEntity.ok(categoryService.updateCategory(id, category));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody @Valid Category category) {
+        return ResponseEntity.ok(categoryService.updateCategory(id, category));
     }
 
     // Suppression d'une catégorie
@@ -68,24 +76,5 @@ public class CategoryController {
             response.put("error", "Catégorie non trouvée.");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
-    }
-
-    // Recherche avec filtres
-    @GetMapping("/search")
-    public ResponseEntity<Page<Object>> getCategoriesWithPagination(@RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Category> categories = categoryService.getCategoriesWithPagination(pageable);
-
-        Page<Object> response = categories.map(category -> {
-            return new Object() {
-                public final String name = category.getName();
-                public final Date creationDate = category.getCreationDate();
-                public final Set<String> children = category.getChildren().stream().map(Category::getName).collect(Collectors.toSet());
-                public final boolean isRoot = category.isRoot();
-            };
-        });
-
-        return ResponseEntity.ok(response);
     }
 }

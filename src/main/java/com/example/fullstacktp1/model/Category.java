@@ -3,6 +3,7 @@ package com.example.fullstacktp1.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ public class Category {
     private Long id;
 
     @NotBlank(message = "Le nom de la catégorie est obligatoire.")
+    @Size(min = 1, max = 100, message = "Le nom doit contenir entre 1 et 100 caractères.")
     private String name;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -58,7 +60,7 @@ public class Category {
     }
 
     public void setParent(Category parent) {
-        if (parent != null && this.equals(parent)) {
+        if (this.equals(parent)) {
             throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
         }
         this.parent = parent;
@@ -75,4 +77,16 @@ public class Category {
     public boolean isRoot() {
         return this.parent == null;
     }
+
+    @Override
+    public String toString() {
+        return "Category{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", creationDate=" + creationDate +
+                ", parent=" + parent +
+                ", children=" + children +
+                '}';
+    }
+
 }
