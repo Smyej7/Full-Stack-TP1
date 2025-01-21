@@ -1,17 +1,15 @@
 package com.example.fullstacktp1.controller;
 
 import com.example.fullstacktp1.dto.CategoryDTO;
+import com.example.fullstacktp1.mapper.CategoryMapper;
 import com.example.fullstacktp1.model.Category;
 import com.example.fullstacktp1.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,26 +18,35 @@ import java.util.stream.Collectors;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final CategoryMapper categoryMapper;
 
-    public CategoryController(CategoryService categoryService) {
+    public CategoryController(CategoryService categoryService, CategoryMapper categoryMapper) {
         this.categoryService = categoryService;
+        this.categoryMapper = categoryMapper;
     }
 
     // Création d'une nouvelle catégorie
     @PostMapping
-    public ResponseEntity<Category> createCategory(@Valid @RequestBody Category category) {
-        return ResponseEntity.ok(categoryService.createCategory(category));
+    public ResponseEntity<CategoryDTO> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
+        Category category = categoryMapper.toEntity(categoryDTO);
+        Category savedCategory = categoryService.createCategory(category);
+        return ResponseEntity.ok(categoryMapper.toDTO(savedCategory));
     }
 
     // Lecture de toutes les catégories avec pagination
     @GetMapping
-    public ResponseEntity<List<Category>> getAllCategories(
+    public ResponseEntity<List<CategoryDTO>> getAllCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy) {
-        return ResponseEntity.ok(categoryService.getAllCategories(page, size, sortBy));
+        List<Category> categories = categoryService.getAllCategories(page, size, sortBy);
+        List<CategoryDTO> categoryDTOs = categories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(categoryDTOs);
     }
 
+    // Lecture des catégories triées
     @GetMapping("/sort")
     public ResponseEntity<Page<CategoryDTO>> getSortedCategories(
             @RequestParam(defaultValue = "name") String sortBy,
@@ -52,16 +59,18 @@ public class CategoryController {
 
     // Lecture d'une catégorie par ID
     @GetMapping("/{id}")
-    public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
-        return categoryService.getCategoryById(id)
-                .map(ResponseEntity::ok)
+    public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
+        Optional<Category> category = categoryService.getCategoryById(id);
+        return category.map(value -> ResponseEntity.ok(categoryMapper.toDTO(value)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     // Mise à jour d'une catégorie
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody @Valid Category category) {
-        return ResponseEntity.ok(categoryService.updateCategory(id, category));
+    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody @Valid CategoryDTO categoryDTO) {
+        Category category = categoryMapper.toEntity(categoryDTO);
+        Category updatedCategory = categoryService.updateCategory(id, category);
+        return ResponseEntity.ok(categoryMapper.toDTO(updatedCategory));
     }
 
     // Suppression d'une catégorie
@@ -77,4 +86,6 @@ public class CategoryController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
+
+
 }
