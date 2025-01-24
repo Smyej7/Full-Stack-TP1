@@ -7,14 +7,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class CategoryMapper {
 
-    // Convertir une entité Category en CategoryDTO
     public CategoryDTO toDTO(Category category) {
         return new CategoryDTO(
                 category.getId(),
                 category.getName(),
                 category.getCreationDate(),
-                category.getParent() == null, // true si la catégorie est une racine
-                category.getChildren() // Les enfants sont directement inclus dans le DTO
+                category.getParent(),
+                category.getParent() == null,
+                category.getChildren()
         );
     }
 

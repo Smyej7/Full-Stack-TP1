@@ -1,6 +1,7 @@
 package com.example.fullstacktp1.service;
 
 import com.example.fullstacktp1.dto.CategoryDTO;
+import com.example.fullstacktp1.mapper.CategoryMapper;
 import com.example.fullstacktp1.model.Category;
 import com.example.fullstacktp1.repository.CategoryRepository;
 import org.springframework.data.domain.Page;
@@ -9,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.sql.Date;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -18,9 +19,11 @@ import java.util.stream.Collectors;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository, CategoryMapper categoryMapper) {
         this.categoryRepository = categoryRepository;
+        this.categoryMapper = categoryMapper;
     }
 
     // Création d'une catégorie
@@ -28,6 +31,7 @@ public class CategoryService {
         if (category.getParent() != null && category.getParent().getId().equals(category.getId())) {
             throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
         }
+        category.setCreationDate(new Date());
         return categoryRepository.save(category);
     }
 
@@ -39,7 +43,8 @@ public class CategoryService {
 
     // Lecture par ID
     public Optional<Category> getCategoryById(Long id) {
-        return categoryRepository.findById(id);
+        Optional<Category> optionalCategory = categoryRepository.findById(id);
+        return optionalCategory;
     }
 
     // Mise à jour d'une catégorie
@@ -48,16 +53,13 @@ public class CategoryService {
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
         if (updatedCategory.getParent() != null) {
-            // Vérification : Empêcher l'ajout d'un parent avec un id inexistant
             categoryRepository.findById(updatedCategory.getParent().getId())
                     .orElseThrow(() -> new RuntimeException("Parent Category not found"));
 
-            // Vérification : Une catégorie ne peut pas être son propre parent
             if (updatedCategory.getParent().getId().equals(id)) {
                 throw new IllegalArgumentException("Une catégorie ne peut pas être son propre parent.");
             }
 
-            // Vérification : Empêcher une boucle hiérarchique
             Long parentId = updatedCategory.getParent().getId();
             if (isCircularReference(id, parentId)) {
                 throw new IllegalArgumentException("Une catégorie ne peut pas créer une boucle hiérarchique avec ses parents.");
@@ -99,6 +101,7 @@ public class CategoryService {
                 category.getId(),
                 category.getName(),
                 category.getCreationDate(),
+                category.getParent(),
                 category.getParent() == null,
                 category.getChildren()
         ));

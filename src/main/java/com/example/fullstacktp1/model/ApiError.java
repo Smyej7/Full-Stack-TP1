@@ -6,16 +6,14 @@ public class ApiError {
     private int status;
     private String message;
     private long timestamp;
-    private Map<String, String> validationErrors; // Optionnel, utilisé pour les erreurs de validation
+    private Map<String, String> validationErrors;
 
-    // Constructeur pour les erreurs sans validation spécifique
     public ApiError(int status, String message, long timestamp) {
         this.status = status;
         this.message = message;
         this.timestamp = timestamp;
     }
 
-    // Constructeur pour les erreurs avec validation
     public ApiError(int status, String message, long timestamp, Map<String, String> validationErrors) {
         this.status = status;
         this.message = message;

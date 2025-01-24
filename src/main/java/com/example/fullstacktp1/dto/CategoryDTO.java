@@ -20,10 +20,11 @@ public class CategoryDTO {
     private Set<Category> children;
 
     // Constructeur
-    public CategoryDTO(Long id, String name, Date creationDate, boolean isRoot, Set<Category> children) {
+    public CategoryDTO(Long id, String name, Date creationDate, Category parent, boolean isRoot, Set<Category> children) {
         this.id = id;
         this.name = name;
         this.creationDate = creationDate;
+        this.parent = parent;
         this.isRoot = isRoot;
         this.children = children;
     }

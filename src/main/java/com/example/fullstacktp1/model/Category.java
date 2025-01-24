@@ -18,6 +18,7 @@ public class Category {
 
     @NotBlank(message = "Le nom de la catégorie est obligatoire.")
     @Size(min = 1, max = 100, message = "Le nom doit contenir entre 1 et 100 caractères.")
+    @Column(nullable = false, unique = true)
     private String name;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -26,7 +27,7 @@ public class Category {
     @ManyToOne
     private Category parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "parent", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JsonIgnore
     private Set<Category> children = new HashSet<>();
 
